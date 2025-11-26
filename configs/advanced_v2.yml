@@ -1,0 +1,49 @@
+# Advanced Model v2: Multi-task Learning with Auxiliary Task
+# Target: >40% Test Acc@1
+# Techniques: Multi-task loss, auxiliary reconstruction, focal loss
+
+model:
+  name: advanced_v2
+  d_model: 88
+  d_inner: 176
+  n_layers: 4
+  n_head: 8
+  d_k: 11
+  d_v: 11
+  dropout: 0.15
+  max_len: 50
+  use_hierarchical: true
+  use_auxiliary: true
+
+training:
+  batch_size: 64
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  loss_type: multitask
+  gamma: 2.0
+  label_smoothing: 0.1
+  max_epochs: 200
+  patience: 35
+  warmup_epochs: 5
+  log_interval: 50
+  use_mixup: false
+  mixup_alpha: 0.2
+  use_auxiliary: true
+  aux_weight: 0.3
+  snapshot_ensemble: false
+  snapshot_interval: 10
+
+data:
+  data_dir: /content/geolife_prediction_v2/data/geolife
+  max_len: 50
+  num_workers: 0
+
+experiment:
+  name: advanced_v2_multitask
+  seed: 42
+  device: cuda
+  checkpoint_dir: checkpoints
+  log_dir: logs
+  result_dir: results
+  save_best_only: true
+  deterministic: true
