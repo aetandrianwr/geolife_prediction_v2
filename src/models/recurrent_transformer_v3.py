@@ -76,12 +76,11 @@ class RecurrentTransformerV3(nn.Module):
         
         # Embeddings
         self.location_embed = nn.Embedding(num_locations, d_model)
-        self.user_embed = nn.Embedding(num_users, d_model // 2)
-        self.hour_embed = nn.Embedding(24, d_model // 4)
-        self.weekday_embed = nn.Embedding(7, d_model // 4)
+        self.user_embed = nn.Embedding(num_users, d_model)
+        self.hour_embed = nn.Embedding(24, d_model)
+        self.weekday_embed = nn.Embedding(7, d_model)
         
-        # Project combined embeddings
-        self.embed_proj = nn.Linear(d_model + d_model // 2, d_model)
+        # No projection needed - all same dimension
         
         # Positional encoding
         self.pos_embed = nn.Parameter(torch.randn(1, max_len, d_model) * 0.02)
@@ -122,10 +121,8 @@ class RecurrentTransformerV3(nn.Module):
         hour_embed = self.hour_embed(hours)
         weekday_embed = self.weekday_embed(weekdays)
         
-        # Combine
-        temporal = torch.cat([hour_embed, weekday_embed], dim=-1)
-        combined = torch.cat([loc_embed, user_embed, temporal], dim=-1)
-        x = self.embed_proj(combined)
+        # Combine all embeddings
+        x = loc_embed + user_embed + hour_embed + weekday_embed
         
         # Add positional encoding
         x = x + self.pos_embed[:, :seq_len, :]
