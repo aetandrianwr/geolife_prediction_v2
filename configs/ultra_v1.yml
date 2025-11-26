@@ -1,0 +1,49 @@
+# Ultra-Advanced Model: Multi-Scale + Robust Training
+# Target: >50% Test Acc@1
+# Aggressive combination of proven techniques
+
+model:
+  name: ultra_v1
+  d_model: 96
+  d_inner: 192
+  n_layers: 3
+  n_head: 8
+  d_k: 12
+  d_v: 12
+  dropout: 0.2  # Higher dropout for better generalization
+  max_len: 50
+  use_hierarchical: false  # Simpler works better
+  use_auxiliary: false
+
+training:
+  batch_size: 128  # Larger batch for more stable gradients
+  learning_rate: 0.001  # Higher LR with larger batch
+  weight_decay: 0.0005  # Stronger regularization
+  loss_type: focal
+  gamma: 3.0  # More aggressive focal loss
+  label_smoothing: 0.15  # More smoothing
+  max_epochs: 300
+  patience: 50  # More patience
+  warmup_epochs: 10  # Longer warmup
+  log_interval: 50
+  use_mixup: true  # Enable mixup
+  mixup_alpha: 0.3  # More aggressive mixup
+  use_auxiliary: false
+  aux_weight: 0.3
+  snapshot_ensemble: true  # Enable snapshot ensemble
+  snapshot_interval: 20
+
+data:
+  data_dir: /content/geolife_prediction_v2/data/geolife
+  max_len: 50
+  num_workers: 0
+
+experiment:
+  name: ultra_v1_aggressive
+  seed: 42
+  device: cuda
+  checkpoint_dir: checkpoints
+  log_dir: logs
+  result_dir: results
+  save_best_only: true
+  deterministic: true

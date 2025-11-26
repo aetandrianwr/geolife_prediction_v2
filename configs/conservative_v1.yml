@@ -1,0 +1,45 @@
+# Conservative Improvement: Baseline arch + better training
+# Keep proven architecture, improve training only
+# Target: >40% Test Acc@1
+
+model:
+  name: conservative_v1
+  d_model: 88
+  d_inner: 176
+  n_layers: 4
+  n_head: 8
+  d_k: 11
+  d_v: 11
+  dropout: 0.18  # Slightly higher than baseline
+  max_len: 50
+
+training:
+  batch_size: 96  # Between 64 and 128
+  learning_rate: 0.0007  # Slightly higher than baseline
+  weight_decay: 0.00015  # Slightly higher
+  loss_type: focal
+  gamma: 2.5  # Moderate focal loss
+  label_smoothing: 0.12  # Slightly more than baseline
+  max_epochs: 250
+  patience: 40
+  warmup_epochs: 8
+  log_interval: 50
+  use_mixup: true
+  mixup_alpha: 0.25
+  snapshot_ensemble: true
+  snapshot_interval: 20
+
+data:
+  data_dir: /content/geolife_prediction_v2/data/geolife
+  max_len: 50
+  num_workers: 0
+
+experiment:
+  name: conservative_v1
+  seed: 42
+  device: cuda
+  checkpoint_dir: checkpoints
+  log_dir: logs
+  result_dir: results
+  save_best_only: true
+  deterministic: true
