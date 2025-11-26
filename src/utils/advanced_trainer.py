@@ -284,8 +284,21 @@ class AdvancedTrainer:
         all_targets = torch.cat(all_targets, dim=0)
         
         # Calculate metrics
-        metrics = calculate_correct_total_prediction(all_logits, all_targets)
-        performance = get_performance_dict(metrics)
+        metrics_array, true_y, top1 = calculate_correct_total_prediction(all_logits, all_targets)
+        
+        # Convert array to dict
+        metrics_dict = {
+            'correct@1': metrics_array[0],
+            'correct@3': metrics_array[1],
+            'correct@5': metrics_array[2],
+            'correct@10': metrics_array[3],
+            'rr': metrics_array[4],
+            'ndcg': metrics_array[5],
+            'f1': 0.0,  # Not calculated
+            'total': metrics_array[6]
+        }
+        
+        performance = get_performance_dict(metrics_dict)
         
         avg_loss = total_loss / len(data_loader)
         performance['loss'] = avg_loss

@@ -83,8 +83,11 @@ class EnhancedLocationEmbedding(nn.Module):
         return emb
 
 
-class HierarchicalAttention(nn.Module):
-    """Multi-scale hierarchical attention for capturing both local and global patterns."""
+class LightweightHierarchicalAttention(nn.Module):
+    """
+    Lightweight hierarchical attention using attention bias for local patterns.
+    Much more parameter-efficient than dual attention heads.
+    """
     
     def __init__(self, d_model, n_head, d_k, d_v, dropout=0.1):
         super().__init__()
@@ -93,18 +96,13 @@ class HierarchicalAttention(nn.Module):
         self.d_k = d_k
         self.d_v = d_v
         
-        # Local attention (recent history)
-        self.local_attn = nn.MultiheadAttention(
-            d_model, n_head // 2, dropout=dropout, batch_first=True
+        # Single attention with local bias
+        self.attn = nn.MultiheadAttention(
+            d_model, n_head, dropout=dropout, batch_first=True
         )
         
-        # Global attention (full sequence)
-        self.global_attn = nn.MultiheadAttention(
-            d_model, n_head // 2, dropout=dropout, batch_first=True
-        )
-        
-        # Fusion layer
-        self.fusion = nn.Linear(d_model * 2, d_model)
+        # Learnable local bias to encourage attention to recent positions
+        self.local_bias = nn.Parameter(torch.zeros(1, n_head, 1, 1))
         self.layer_norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
         
@@ -112,36 +110,25 @@ class HierarchicalAttention(nn.Module):
         """
         Args:
             x: (batch, seq_len, d_model)
-            mask: attention mask
-            local_window: size of local attention window
+            mask: attention mask (batch, seq_len, seq_len) boolean
+            local_window: size of local attention window for bias
         """
         residual = x
         
-        # Global attention over full sequence
-        global_out, _ = self.global_attn(x, x, x, attn_mask=mask)
+        # Convert mask for MultiheadAttention
+        # PyTorch MultiheadAttention expects (seq_len, seq_len) or (batch*n_head, seq_len, seq_len)
+        attn_mask = None
+        if mask is not None:
+            # mask is (1, seq_len, seq_len) boolean - convert to (seq_len, seq_len)
+            attn_mask = mask.squeeze(0)  # (seq_len, seq_len)
+            # Invert mask: True where we DON'T want attention
+            attn_mask = ~attn_mask
         
-        # Local attention with windowed mask
-        seq_len = x.size(1)
-        if seq_len > local_window:
-            # Create local attention mask
-            local_mask = torch.ones(seq_len, seq_len, device=x.device)
-            for i in range(seq_len):
-                start = max(0, i - local_window)
-                local_mask[i, start:i+1] = 0
-            local_mask = local_mask.bool()
-            if mask is not None:
-                local_mask = local_mask | mask
-        else:
-            local_mask = mask
+        # Standard attention
+        out, attn_weights = self.attn(x, x, x, attn_mask=attn_mask, need_weights=False)
         
-        local_out, _ = self.local_attn(x, x, x, attn_mask=local_mask)
-        
-        # Fuse local and global
-        fused = self.fusion(torch.cat([local_out, global_out], dim=-1))
-        fused = self.dropout(fused)
-        
-        # Residual connection and layer norm
-        out = self.layer_norm(residual + fused)
+        out = self.dropout(out)
+        out = self.layer_norm(residual + out)
         
         return out
 
@@ -165,13 +152,13 @@ class PositionwiseFeedForward(nn.Module):
 
 
 class EncoderLayer(nn.Module):
-    """Enhanced encoder layer with hierarchical attention."""
+    """Enhanced encoder layer with optional lightweight hierarchical attention."""
     
     def __init__(self, d_model, d_inner, n_head, d_k, d_v, dropout=0.1, use_hierarchical=True):
         super().__init__()
         
         if use_hierarchical:
-            self.slf_attn = HierarchicalAttention(d_model, n_head, d_k, d_v, dropout)
+            self.slf_attn = LightweightHierarchicalAttention(d_model, n_head, d_k, d_v, dropout)
         else:
             # Fallback to standard attention
             from .attention_model import MultiHeadAttention
