@@ -1,0 +1,45 @@
+# ULTRA-Aggressive Model: All proven techniques combined
+# Based on research insights: Conservative approach works better
+# But need MORE aggressive regularization and augmentation
+
+model:
+  name: ultra_aggressive_v1
+  d_model: 88  # Proven size from baseline
+  d_inner: 176
+  n_layers: 4
+  n_head: 8
+  d_k: 11
+  d_v: 11
+  dropout: 0.25  # Much higher dropout for generalization
+  max_len: 50
+
+training:
+  batch_size: 128  # Large batch for stable gradients
+  learning_rate: 0.001  # Higher LR with large batch
+  weight_decay: 0.001  # Much stronger L2 regularization
+  loss_type: focal
+  gamma: 4.0  # Very aggressive focal loss
+  label_smoothing: 0.2  # Strong label smoothing
+  max_epochs: 150  # Fewer epochs, train faster
+  patience: 30
+  warmup_epochs: 10
+  log_interval: 30
+  use_mixup: true
+  mixup_alpha: 0.4  # Aggressive mixup
+  snapshot_ensemble: true
+  snapshot_interval: 15
+
+data:
+  data_dir: /content/geolife_prediction_v2/data/geolife
+  max_len: 50
+  num_workers: 0
+
+experiment:
+  name: ultra_aggressive_v1
+  seed: 123  # Different seed
+  device: cuda
+  checkpoint_dir: checkpoints
+  log_dir: logs
+  result_dir: results
+  save_best_only: true
+  deterministic: true
